@@ -13,6 +13,8 @@ A montagem do projeto pode ser visualizada no [link.](https://www.tinkercad.com/
 - 3x resistores de 220Ω
 - 1x resistor de 1kΩ
 - 1x buzzer
+- 1x Sensor DHT11 (Representado no circuito por um potenciômetro e um sensor de temperatura)
+- 1x Display LCD
 - Jumpers para conectar o circuito
 - Protoboard
 
