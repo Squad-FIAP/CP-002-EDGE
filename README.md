@@ -9,11 +9,9 @@ Esse repositório hospeda os artefatos produzidos durante o processo de constru�
 - Miguel Garcez de Carvalho - RM 553768
 - Vinicius Souza e Silva - RM 552781
 
-## Video de Apresentação
-[Youtube](https://youtu.be/WOWa7jJhRi0)
+## [Video de Apresentação - Youtube](https://youtu.be/WOWa7jJhRi0)
 
-## Implementação
-A montagem do projeto pode ser visualizada no [link.](https://www.tinkercad.com/things/d4hGsyNYhhM)
+## [Implementação - Tinkercad](https://www.tinkercad.com/things/d4hGsyNYhhM)
 
 ## Lista de Materiais
 - Arduino Uno;
