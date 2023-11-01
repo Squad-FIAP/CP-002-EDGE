@@ -1,4 +1,5 @@
 #include <LiquidCrystal_I2C.h>
+#include <stdlib.h>
 
 const int RED_LED_PIN = 7;
 const int YELLOW_LED_PIN = 4;
@@ -8,9 +9,7 @@ const int HUMIDITY_PIN = A3;
 const int TEMPERATURE_PIN = A2;
 const int BUZZER_PIN = 8;
 
-double Voltage = 0;
-double tempC = 0;
-int humiditysensorOutput = 0;
+
 
 
 LiquidCrystal_I2C lcd(0x20,16,2);
@@ -23,27 +22,25 @@ void setupLCD() {
   lcd.print("CP02 - EDGE");
 }
 
-void readDHT() {
-  Voltage = (analogRead(TEMPERATURE_PIN) / 1023.0) * 5000; // 5000 to get millivots.
-  tempC = (Voltage-500) * 0.1; // 500 is the offset
-  humiditysensorOutput = map(analogRead(HUMIDITY_PIN), 0, 1023, 10, 70);
+
+double readTemperature() {
+  double voltage = (analogRead(TEMPERATURE_PIN) / 1023.0) * 5000; // 5000 to get millivots.
+  double tempC = (voltage-500) * 0.1; // 500 is the offset
+  return tempC;
 }
 
-void printTempLCD(int temp) {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-
-  if (temp < 10){
-    lcd.print("TEMPERATURA BAIXA");
-  } else if(temp > 15) {
-    lcd.print("TEMPERATURA ALTA");
-  } else {
-    return;
-  }
-    lcd.setCursor(0, 1);
-    lcd.print(String(temp) + String(" Celsius"));
-    return;
+double readHumidity() {
+  int humiditysensorOutput = map(analogRead(HUMIDITY_PIN), 0, 1023, 10, 70);
+  return humiditysensorOutput;
 }
+
+
+char* doubleToString(double value) {
+  static char buffer[10];
+  dtostrf(value, 4, 2, buffer);
+  return buffer;
+}
+
 
 void setup() {
   setupLCD();
@@ -61,30 +58,82 @@ void turnOffAllLeds() {
   digitalWrite(GREEN_LED_PIN, LOW);
 }
 
-void buzz() {
-  tone(8, 1000, 3000);
-  delay(3000);
+void printLuminosityScenario(int luminosity) {
+  Serial.println(luminosity);
+  turnOffAllLeds();
+
+  if (luminosity <= 3){
+    lcd.clear();
+    digitalWrite(GREEN_LED_PIN, HIGH);
+  } else if (luminosity > 3 && luminosity < 7){
+    lcd.clear();
+    digitalWrite(YELLOW_LED_PIN, HIGH);
+    printLCD("AMBIENTE", "MEIA-LUZ");
+  } else if (luminosity >= 7) {
+    lcd.clear();
+    digitalWrite(RED_LED_PIN, HIGH);
+    printLCD("AMBIENTE", "ALTA-LUZ");
+  }
+}
+
+void printLCD(char * message1, char * message2){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(message1);
+  lcd.setCursor(0, 1);
+  lcd.print(message2);
+  delay(5000);
+}
+
+void buzz(){
+  tone(8, 1000, 1000);
+  delay(1000);
   noTone(8);
 }
 
-void execScenario(int scenario []){
-    int luminosity = scenario[0];
-    int humidity = scenario[1];
-    int temperature = scenario[2];
-    
-    if (luminosity <= 3){
-        turnOffAllLeds();
-        digitalWrite(GREEN_LED_PIN, HIGH);
-    } else if (luminosity > 3 && luminosity < 7){
-        turnOffAllLeds();
-        digitalWrite(YELLOW_LED_PIN, HIGH);
-    } else if (luminosity >= 7) {
-        turnOffAllLeds();
-        digitalWrite(RED_LED_PIN, HIGH);
-      	printTempLCD(0);
-        buzz();
-    }
+void buzz3seconds(){
+  tone(8, 1000, 3000);
+  delay(3000);
+  noTone(8);
+  delay(3000);
 }
+
+void printHumidityScenario(double humidity) {
+  Serial.println(humidity);
+  char* humidityString = doubleToString(humidity);
+
+  if (humidity <= 60){
+    lcd.clear();
+    printLCD("UMIDADE BAIXA", humidityString);
+    buzz3seconds();
+  } else if (humidity > 60 && humidity < 80){
+    lcd.clear();
+    printLCD("UMIDADE OK", humidityString);
+  } else if (humidity >= 80) {
+    lcd.clear();
+    printLCD("UMIDADE ALTA", humidityString);
+    buzz();
+  }
+}
+
+void printTemperatureScenario(double temperature) {
+  Serial.println(temperature);
+  char* temperatureString = doubleToString(temperature);
+
+  if (temperature <= 10){
+    lcd.clear();
+    printLCD("TEMP. BAIXA", temperatureString);
+    buzz3seconds();
+  } else if (temperature > 10 && temperature < 15){
+    lcd.clear();
+    printLCD("TEMP. OK", temperatureString);
+  } else if (temperature >= 15) {
+    lcd.clear();
+    printLCD("TEMP. ALTA", temperatureString);
+    buzz();
+  }
+}
+
 
 void calculateStatusOfWineyard() {
   int count = 0;
@@ -94,21 +143,21 @@ void calculateStatusOfWineyard() {
 
   while (count < 5){
     luminositySum += analogRead(LDR_PIN);
-    humiditySum += analogRead(HUMIDITY_PIN);
-    temperatureSum += analogRead(TEMPERATURE_PIN);    
+    humiditySum += readHumidity();
+    temperatureSum += readTemperature();
     count++;
   }
 
-  int luminosityAverage = luminositySum/count;
-  int humidityAverage = humiditySum/count;
-  int temperatureAverage = temperatureSum/count;
+  int luminosityAverage = map((luminositySum/count), 160, 600, 1, 8);
+  double humidityAverage = humiditySum/count;
+  double temperatureAverage = temperatureSum/count;
 
-  int scenario [] = {(map(luminosityAverage, 160, 600, 1, 8)), humidityAverage, temperatureAverage};
-  execScenario(scenario);
+  printLuminosityScenario(luminosityAverage);
+  printHumidityScenario(humidityAverage);
+  printTemperatureScenario(temperatureAverage);
 }
 
 void loop() {
-  readDHT();
   calculateStatusOfWineyard();
   delay(1000);
 }
